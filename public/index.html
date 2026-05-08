@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CANVAIZ 2 - Image Generation Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #111827;
+            margin-bottom: 0.5rem;
+            font-size: 32px;
+        }
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+        textarea {
+            width: 100%;
+            height: 140px;
+            padding: 1rem;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .status {
+            display: none;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+        .status.loading {
+            display: block;
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        .status.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        .status.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #10b981;
+        }
+        .results {
+            display: none;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .prompt-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-left: 3px solid #667eea;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ CANVAIZ 2</h1>
+        <p class="subtitle">Test Claude + Google Gemini Image Generation</p>
+
+        <textarea id="textInput" placeholder="Paste your text here...">China winter trip. Destinations: Zhangjiajie (Avatar Mountains), Furong (waterfall town), Fenghuang (ancient river city), Changsha (modern energy city). Theme: each location resets perception.</textarea>
+        
+        <button onclick="generatePrompts()">Generate Prompts (Fast)</button>
+        <button onclick="generateImages()" style="background: #764ba2; margin-left: 10px;">Generate Images (Full)</button>
+
+        <div class="status" id="status"></div>
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        async function generatePrompts() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) {
+                showStatus('error', 'Please enter text');
+                return;
+            }
+
+            showStatus('loading', '⏳ Generating image prompts with Claude...');
+            
+            try {
+                const response = await fetch('/api/generate-prompts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus('error', `Error: ${data.error}`);
+                    return;
+                }
+
+                displayResults(data.prompts);
+                showStatus('success', '✓ Image prompts generated successfully');
+            } catch (err) {
+                showStatus('error', `Network error: ${err.message}`);
+            }
+        }
+
+        async function generateImages() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) {
+                showStatus('error', 'Please enter text');
+                return;
+            }
+
+            showStatus('loading', '⏳ Generating prompts and images with Gemini...');
+            
+            try {
+                const response = await fetch('/api/transform', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus('error', `Error: ${data.error}`);
+                    return;
+                }
+
+                displayResults(data.prompts);
+                showStatus('success', '✓ Prompts generated and images processing');
+            } catch (err) {
+                showStatus('error', `Network error: ${err.message}`);
+            }
+        }
+
+        function displayResults(prompts) {
+            let html = '<div style="font-weight: 700; margin-bottom: 1rem;">Domain: ' + prompts.domain + '</div>';
+            
+            html += '<div style="font-weight: 700; margin-bottom: 0.5rem;">Hero Prompt:</div>';
+            html += '<div class="prompt-box">' + prompts.hero + '</div>';
+
+            html += '<div style="font-weight: 700; margin: 1.5rem 0 0.5rem;">Insight Prompts:</div>';
+            prompts.insights.forEach((p, i) => {
+                html += `<div class="prompt-box">${i+1}. ${p}</div>`;
+            });
+
+            html += '<div style="font-weight: 700; margin: 1.5rem 0 0.5rem;">Journey Prompts:</div>';
+            prompts.journey.forEach((p, i) => {
+                html += `<div class="prompt-box">${i+1}. ${p}</div>`;
+            });
+
+            document.getElementById('results').innerHTML = html;
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function showStatus(type, message) {
+            const el = document.getElementById('status');
+            el.className = `status ${type}`;
+            el.textContent = message;
+        }
+    </script>
+</body>
+</html>
