@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CANVAIZ 2 - Image Generation Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #111827;
+            margin-bottom: 0.5rem;
+            font-size: 32px;
+        }
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+        .section {
+            margin-bottom: 2.5rem;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        textarea {
+            width: 100%;
+            height: 140px;
+            padding: 1rem;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 1.5rem;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #111827;
+            border: 1px solid #e5e7eb;
+        }
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        .status {
+            display: none;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .status.loading {
+            display: block;
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        .status.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        .status.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #10b981;
+        }
+        .results {
+            display: none;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .result-section {
+            margin-bottom: 2rem;
+        }
+        .result-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 1rem;
+        }
+        .prompt-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-left: 3px solid #667eea;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            font-family: 'Courier New', monospace;
+        }
+        .prompt-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ CANVAIZ 2</h1>
+        <p class="subtitle">Test Claude + Google Gemini Image Generation</p>
+
+        <div class="section">
+            <div class="section-title">Input Text</div>
+            <textarea id="textInput" placeholder="Paste your travel, medical, business, or research text here...">China winter trip. Destinations: Zhangjiajie (Avatar Mountains with 3000 pillars), Furong (waterfall town with ancient architecture), Fenghuang (phoenix city on river with traditional style), Changsha (modern energy city with Zaha Hadid art centre). Theme: each location resets perception. Winter for mist, fewer crowds, cinematic atmosphere.</textarea>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="generatePrompts()">Generate Prompts (Fast)</button>
+                <button class="btn-primary" onclick="generateImages()" style="background: #764ba2;">Generate Images (Full)</button>
+                <button class="btn-secondary" onclick="clearResults()">Clear</button>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        async function generatePrompts() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) {
+                showStatus('error', 'Please enter text');
+                return;
+            }
+
+            showStatus('loading', '⏳ Generating image prompts with Claude...');
+            
+            try {
+                const response = await fetch('/api/generate-prompts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus('error', `Error: ${data.error}`);
+                    return;
+                }
+
+                displayResults(data.prompts);
+                showStatus('success', '✓ Image prompts generated successfully');
+            } catch (err) {
+                showStatus('error', `Network error: ${err.message}`);
+            }
+        }
+
+        async function generateImages() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) {
+                showStatus('error', 'Please enter text');
+                return;
+            }
+
+            showStatus('loading', '⏳ Generating prompts and images with Gemini...');
+            
+            try {
+                const response = await fetch('/api/transform', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus('error', `Error: ${data.error}`);
+                    return;
+                }
+
+                displayResults(data.prompts);
+                
+                if (data.images) {
+                    let imageStatus = `✓ Image generation:\nHero: ${data.images.hero}`;
+                    imageStatus += `\nInsights: ${data.images.insights.join(', ')}`;
+                    imageStatus += `\nJourney: ${data.images.journey.join(', ')}`;
+                    showStatus('success', imageStatus);
+                } else {
+                    showStatus('success', '✓ Prompts generated (image generation in progress)');
+                }
+            } catch (err) {
+                showStatus('error', `Network error: ${err.message}`);
+            }
+        }
+
+        function displayResults(prompts) {
+            let html = '<div class="result-section"><div class="result-title">Domain Detected: ' + prompts.domain + '</div></div>';
+            
+            html += '<div class="result-section">';
+            html += '<div class="result-title">Hero Image Prompt</div>';
+            html += '<div class="prompt-box">' + prompts.hero + '</div>';
+            html += '</div>';
+
+            html += '<div class="result-section">';
+            html += '<div class="result-title">Insight Image Prompts</div>';
+            html += '<div class="grid-2">';
+            prompts.insights.forEach((p, i) => {
+                html += `<div><div class="prompt-label">Insight ${i+1}</div><div class="prompt-box">${p}</div></div>`;
+            });
+            html += '</div></div>';
+
+            html += '<div class="result-section">';
+            html += '<div class="result-title">Journey Image Prompts</div>';
+            html += '<div class="grid-2">';
+            prompts.journey.forEach((p, i) => {
+                html += `<div><div class="prompt-label">Location ${i+1}</div><div class="prompt-box">${p}</div></div>`;
+            });
+            html += '</div></div>';
+
+            document.getElementById('results').innerHTML = html;
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function showStatus(type, message) {
+            const el = document.getElementById('status');
+            el.className = `status ${type}`;
+            el.textContent = message;
+        }
+
+        function clearResults() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('status').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
