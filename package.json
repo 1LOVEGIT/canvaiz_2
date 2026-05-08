@@ -1,0 +1,17 @@
+{
+  "name": "canvaiz-2",
+  "version": "1.0.0",
+  "description": "Visual content transformation with Claude + Google Gemini",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["vision", "claude", "gemini", "image", "transformation"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.11"
+  }
+}
